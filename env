@@ -1,0 +1,55 @@
+#!/bin/bash
+
+set -euo pipefail
+
+declare -a RUNCMD
+
+IMAGE=node:16-slim
+
+APPNAME=mail-forwarder-aws-ses
+
+ROOTDIR=$(git rev-parse --show-toplevel)
+
+if [ "$(pwd)" = "$ROOTDIR" ]
+then
+  RELDIR=""
+else
+  RELDIR=$(pwd | xargs -0 realpath --relative-to="$ROOTDIR")
+fi
+
+# Main docker-run arguments
+RUNCMD+=(
+  --name "$APPNAME-$(printf '%(%s)T')"
+  --rm
+  -ti
+  -u "$UID"
+  -e HOME=/home/node
+  -v "$ROOTDIR:/source"
+  -w "/source/$RELDIR"
+)
+
+# Initialize volumes, if they are missing.
+initvol() {
+  volname="$APPNAME-$1"
+  mountpath=$2
+
+  if [ -z "$(docker volume ls -q -f "name=$volname")" ]
+  then
+    printf 'New volume: '
+    docker volume create "$volname"
+    docker run --rm -v "$volname:/vol" \
+      "$IMAGE"                         \
+      chown "$UID:$UID" /vol
+  fi
+
+  RUNCMD+=(
+    --mount "type=volume,source=$volname,destination=$mountpath"
+  )
+}
+
+mkdir -p "$ROOTDIR/node_modules"
+
+initvol home "/home/node"
+initvol modules "/source/node_modules"
+
+exec docker run "${RUNCMD[@]}" "$IMAGE" bash
