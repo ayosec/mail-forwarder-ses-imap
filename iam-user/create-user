@@ -1,0 +1,86 @@
+#!/bin/bash
+#
+# Create an IAM user to use with CloudFormation.
+#
+# The user will be able to send requests only to a specific region. However, it
+# can create another user without region restrictions.
+
+set -euo pipefail
+
+REGION=us-west-2
+IAM_USER_NAME=mail-forwarder-cloudformation
+
+while getopts "u:r:h" OPT
+do
+  case "$OPT" in
+    u)
+      IAM_USER_NAME="$OPTARG"
+      ;;
+
+    r)
+      REGION="$OPTARG"
+      ;;
+    *)
+      echo "Usage: $0 [-u iam-user] [-r region]"
+      exit 1
+  esac
+done
+
+# Create the IAM user if it does not exist.
+
+if ! aws iam get-user --user-name "$IAM_USER_NAME" &> /dev/null
+then
+  printf 'Creating new user \e[1m%s\e[m ...\n' "$IAM_USER_NAME"
+  aws iam create-user            \
+    --user-name "$IAM_USER_NAME" \
+    --tags                       \
+      "Key=Description,Value=CloudFormation user for mail-forwarder" \
+      "Key=ManagedBy,Value=mail-forwarder-aws-ses"
+fi
+
+# Attach permissions to it.
+
+printf 'Putting policy to user \e[1m%s\e[m ...\n' "$IAM_USER_NAME"
+
+printf -v POLICY '{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "FullAccessInCloudFormation",
+      "Effect": "Allow",
+      "Action": [ "*" ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:CalledVia": "cloudformation.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "AccessByCDK",
+      "Effect": "Allow",
+      "Action": [ "cloudformation:*" ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "%s"
+        }
+      }
+    }
+  ]
+}
+' "$REGION"
+
+aws iam put-user-policy                \
+  --user-name "$IAM_USER_NAME"         \
+  --policy-name "CloudFormationAccess" \
+  --policy-document "$POLICY"          \
+  > /dev/null
+
+# Add an access key to this user.
+
+NEWKEY=$(aws iam create-access-key --user-name "$IAM_USER_NAME")
+
+printf 'New key:\n\tAWS_ACCESS_KEY_ID=%q\n\tAWS_SECRET_ACCESS_KEY=%q\n' \
+  "$(jq -r .AccessKey.AccessKeyId <<<"$NEWKEY")"                        \
+  "$(jq -r .AccessKey.SecretAccessKey <<<"$NEWKEY")"

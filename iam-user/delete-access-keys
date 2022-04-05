@@ -1,0 +1,34 @@
+#!/bin/bash
+#
+# Delete access users for an IAM user.
+
+set -euo pipefail
+
+if [ $# -ne 1 ]
+then
+  echo "Usage: $0 username"
+  exit 1
+fi
+
+IAM_USER_NAME="$1"
+
+IFS=$'\t'
+aws iam list-access-keys --user-name "$IAM_USER_NAME" \
+ | jq -r '.AccessKeyMetadata[] | [ .AccessKeyId, .Status, .CreateDate ] | join("\t")' \
+ | while read -r -a ITEM
+   do
+      keyid="${ITEM[0]}"
+      status="${ITEM[1]}"
+      createdate="${ITEM[2]}"
+
+      read -r -p "Delete $keyid ($status, $createdate)? [yN] " < /dev/tty
+      if [ "$REPLY" = y ]
+      then
+        (
+          set -x
+          aws iam delete-access-key      \
+            --user-name "$IAM_USER_NAME" \
+            --access-key-id "$keyid"
+        )
+      fi
+   done

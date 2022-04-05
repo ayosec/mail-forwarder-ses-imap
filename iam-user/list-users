@@ -1,0 +1,34 @@
+#!/bin/bash
+#
+# List users managed by this script.
+
+set -euo pipefail
+
+# We have to get all users, since the AWS SDK does not allow filtering by tags.
+
+result=$(aws iam list-users)
+
+while [ -n "$result" ]
+do
+  jq -r '.Users[].UserName' <<<"$result" | while read -r username
+  do
+    found=$(
+      aws iam list-user-tags      \
+          --user-name "$username" \
+          --query "length(Tags[?Key == 'ManagedBy'])"
+    )
+
+    if [ "$found" = 1 ]
+    then
+      printf '%s\n' "$username"
+    fi
+  done
+
+  next_token=$(jq -r '.NextToken // ""' <<<"$result")
+  if [ -z "$next_token" ]
+  then
+    break
+  fi
+
+  result=$(aws iam list-users --starting-token "$next_token")
+done
