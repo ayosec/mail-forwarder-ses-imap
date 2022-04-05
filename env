@@ -1,14 +1,23 @@
 #!/bin/bash
+#
+# This script creates a new container to launch the Python tools used to manage
+# the template defined in this repository.
+#
+# The $HOME directory and the PIP files are stored in a volume.
+#
+# With no arguments, executes a bash shell.
 
 set -euo pipefail
 
 declare -a RUNCMD
 
-IMAGE=node:16-slim
+IMAGE=python:3-slim
 
 APPNAME=mail-forwarder-aws-ses
 
 ROOTDIR=$(git rev-parse --show-toplevel)
+
+PIP_DIRECTORY=/opt/pip
 
 if [ "$(pwd)" = "$ROOTDIR" ]
 then
@@ -23,7 +32,11 @@ RUNCMD+=(
   --rm
   -ti
   -u "$UID"
-  -e HOME=/home/node
+  -e HOME=/home/source
+  -e "PIP_CACHE_DIR=$PIP_DIRECTORY/_cache"
+  -e "PIP_PREFIX=$PIP_DIRECTORY"
+  -e "PYTHONPATH=$PIP_DIRECTORY/lib/python3.10/site-packages"
+  -e "PATH=/usr/local/bin:/usr/bin:/bin:$PIP_DIRECTORY/bin"
   -v "$ROOTDIR:/source"
   -w "/source/$RELDIR"
 )
@@ -47,9 +60,12 @@ initvol() {
   )
 }
 
-mkdir -p "$ROOTDIR/node_modules"
+initvol home "/home/source"
+initvol pip "$PIP_DIRECTORY"
 
-initvol home "/home/node"
-initvol modules "/source/node_modules"
+if [ $# -eq 0 ]
+then
+  set -- bash
+fi
 
-exec docker run "${RUNCMD[@]}" "$IMAGE" bash
+exec docker run "${RUNCMD[@]}" "$IMAGE" "$@"
