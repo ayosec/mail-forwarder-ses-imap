@@ -11,7 +11,7 @@ set -euo pipefail
 
 declare -a RUNCMD
 
-IMAGE=python:3-slim
+IMAGE=python:3.9-slim
 
 APPNAME=mail-forwarder-aws-ses
 
