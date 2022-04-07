@@ -1,0 +1,9 @@
+shopt -s autocd
+shopt -s checkwinsize
+shopt -s globstar
+shopt -s histappend
+shopt -s histverify
+
+alias ls='ls --color=auto --group-directories-first -F'
+
+PS1='\[\e[1m\][Python $PYTHON_VERSION] [mail-forwarder] \w \$\[\e[m\] '

@@ -65,7 +65,7 @@ initvol pip "$PIP_DIRECTORY"
 
 if [ $# -eq 0 ]
 then
-  set -- bash
+  set -- bash --rcfile /source/devel/bashrc
 fi
 
 exec docker run "${RUNCMD[@]}" "$IMAGE" "$@"
