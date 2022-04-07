@@ -33,10 +33,11 @@ RUNCMD+=(
   -ti
   -u "$UID"
   -e HOME=/home/source
+  -e "PATH=/usr/local/bin:/usr/bin:/bin:$PIP_DIRECTORY/bin"
   -e "PIP_CACHE_DIR=$PIP_DIRECTORY/_cache"
   -e "PIP_PREFIX=$PIP_DIRECTORY"
   -e "PYTHONPATH=$PIP_DIRECTORY/lib/python3.10/site-packages"
-  -e "PATH=/usr/local/bin:/usr/bin:/bin:$PIP_DIRECTORY/bin"
+  -e "PYTHONPYCACHEPREFIX=/tmp/pycache"
   -v "$ROOTDIR:/source"
   -w "/source/$RELDIR"
 )
