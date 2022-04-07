@@ -51,8 +51,8 @@ printf -v POLICY '{
       "Action": [ "*" ],
       "Resource": "*",
       "Condition": {
-        "StringEquals": {
-          "aws:CalledVia": "cloudformation.amazonaws.com"
+        "ForAnyValue:StringEquals": {
+          "aws:CalledVia": [ "cloudformation.amazonaws.com" ]
         }
       }
     },
