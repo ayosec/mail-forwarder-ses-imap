@@ -1,0 +1,3 @@
+troposphere ~= 4.0
+sceptre ~= 3.0
+cfn-lint > 0

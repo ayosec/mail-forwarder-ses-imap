@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+sceptre list stacks . \
+  | awk -F: '$2 != "" { print $1 }' \
+  | while read -r STACK
+    do
+      sceptre generate "$STACK" | cfn-lint
+    done
