@@ -182,6 +182,11 @@ class MailForwarder:
                 "logs:PutLogEvents"
               ]
             }, {
+              "Sid": "PasswordReader",
+              "Effect": "Allow",
+              "Action": [ "ssm:GetParameter" ],
+              "Resource": Sub("arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${" + password_param.title + "}")
+            }, {
               "Sid": "EmailReader",
               "Effect": "Allow",
               "Action": [ "s3:GetObject" ],
@@ -207,12 +212,11 @@ class MailForwarder:
 
     function.Environment = awslambda.Environment(
       Variables = {
+        "IMAP_MAILBOX": Ref(ImapMailbox),
         "IMAP_USER": Ref(ImapUser),
         "IMAP_HOST": Ref(ImapHost),
         "IMAP_PORT": Ref(ImapPort),
-        "IMAP_MAILBOX": Ref(ImapMailbox),
-        "S3_BUCKET": Ref(self.s3_bucket()),
-        "S3_PREFIX": S3_OBJECTS_PREFIX
+        "IMAP_PASSWORD_PARAM": Ref(password_param)
       }
     )
 
